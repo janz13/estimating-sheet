@@ -4,6 +4,7 @@ import Header from './components/Header';
 import TradeTabs from './components/TradeTabs';
 import TradeSheet from './components/TradeSheet';
 import ConsolidatedView from './components/ConsolidatedView';
+import AutoEstimatorView from './components/AutoEstimatorView';
 import { calculateConsolidatedSummary, round2 } from './utils/calculations';
 import { formatCurrency, formatPercent } from './utils/formatters';
 
@@ -37,7 +38,9 @@ export const App: React.FC = () => {
 
         {/* Tab View Container */}
         <div className="transition-all">
-          {activeTab === 'summary' || !currentTrade ? (
+          {activeTab === 'auto_estimator' ? (
+            <AutoEstimatorView state={state} dispatch={dispatch} />
+          ) : activeTab === 'summary' || !currentTrade ? (
             <ConsolidatedView state={state} dispatch={dispatch} />
           ) : (
             <TradeSheet

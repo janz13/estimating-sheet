@@ -11,6 +11,7 @@ import {
   Upload,
   Printer,
   RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { ProjectEstimateState, EstimateAction } from '../types/estimate';
 import { SUPPORTED_CURRENCIES } from '../constants/currencies';
@@ -65,6 +66,17 @@ export const Header: React.FC<HeaderProps> = ({ state, dispatch, exportJSON, imp
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'auto_estimator' })}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition shadow-sm ${
+              state.activeTab === 'auto_estimator'
+                ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>⚡ Auto Estimator</span>
+          </button>
           <button
             onClick={() => exportToExcel(state)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-md transition shadow-sm"

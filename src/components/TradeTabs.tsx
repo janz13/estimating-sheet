@@ -7,6 +7,7 @@ import React from 'react';
 import {
   HardHat, Building2, ShieldCheck, Warehouse, Grid3x3,
   DoorOpen, Paintbrush, Wrench, Zap, Flame, BarChart3,
+  Sparkles,
 } from 'lucide-react';
 import { Trade, EstimateAction } from '../types/estimate';
 import { calculateTradeTotal } from '../utils/calculations';
@@ -71,6 +72,21 @@ export const TradeTabs: React.FC<TradeTabsProps> = ({ trades, activeTab, currenc
             </button>
           );
         })}
+
+        {/* Automated Estimator Mode Tab at Upper Right */}
+        <div className="ml-auto pl-2 flex-shrink-0">
+          <button
+            onClick={() => setTab('auto_estimator')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-lg text-xs font-bold whitespace-nowrap border-b-2 transition-all ${
+              activeTab === 'auto_estimator'
+                ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm'
+                : 'border-transparent text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 hover:text-amber-900'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+            <span>⚡ Automated Mode</span>
+          </button>
+        </div>
       </div>
     </div>
   );

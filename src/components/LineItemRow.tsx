@@ -57,14 +57,21 @@ export const LineItemRow: React.FC<LineItemRowProps> = ({
           placeholder="Code"
         />
       </td>
-      {/* Description */}
+      {/* Description & Specification */}
       <td className="px-1 py-1">
         <input
           type="text"
           value={item.description}
           onChange={(e) => update('description', e.target.value)}
-          className="w-full text-xs px-1.5 py-1 border border-transparent rounded hover:border-slate-300 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-300 bg-transparent"
+          className="w-full text-xs font-medium px-1.5 py-0.5 border border-transparent rounded hover:border-slate-300 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-300 bg-transparent text-slate-800"
           placeholder="Description"
+        />
+        <input
+          type="text"
+          value={item.specification || ''}
+          onChange={(e) => update('specification', e.target.value)}
+          className="w-full text-[10px] text-slate-500 px-1.5 py-0.5 border border-transparent rounded hover:border-slate-300 focus:border-sky-400 focus:outline-none bg-transparent placeholder:italic placeholder:text-slate-400"
+          placeholder="Specification / Notes..."
         />
       </td>
       {/* Unit */}
@@ -137,7 +144,7 @@ export const LineItemRow: React.FC<LineItemRowProps> = ({
       </td>
       {/* Actions */}
       <td className="px-1 py-1 text-center">
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() =>
               dispatch({ type: 'DUPLICATE_ITEM', payload: { tradeId, scopeId, itemId: item.id } })
