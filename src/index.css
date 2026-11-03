@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Print Stylesheet for client proposals and PDF export */
+@media print {
+  @page {
+    margin: 12mm;
+    size: A4 portrait;
+  }
+  
+  body {
+    background: white !important;
+    color: #111827 !important;
+    font-size: 10pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .break-before-page {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    padding: 4px 6px !important;
+  }
+}
