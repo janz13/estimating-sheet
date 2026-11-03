@@ -28,7 +28,11 @@ export const DEFAULT_AUTO_PARAMS: AutoEstimateParams = {
   bedroomsFloor2: 3,
   bathroomsFloor1: 1,
   bathroomsFloor2: 2,
+  doorsFloor1: 5,
+  doorsFloor2: 5,
   doorsCount: 10,
+  windowsFloor1: 6,
+  windowsFloor2: 6,
   windowsCount: 12,
   wallType: 'all_chb',
 };
@@ -78,6 +82,18 @@ export function calculateParametricEstimate(
     summaryNotes.push('3-Storey suspended slabs, vertical hoisting & column reinforcement (+6%)');
   }
 
+  // Wall Type sensitivity:
+  // In Philippine construction, lightweight metal stud drywall partitions are ~15-25% cheaper
+  // than wet-laid, plastered, and cured 100mm CHB walls.
+  // This yields an overall ~4.0% direct structure cost savings when part-drywall is selected.
+  let wallTypeMultiplier = 1.0;
+  if (params.wallType === 'part_chb_part_drywall') {
+    wallTypeMultiplier = 0.96; // 4% total direct savings
+    summaryNotes.push('Light-gauge steel stud & drywall interior partitions (-4% savings vs. full CHB)');
+  } else {
+    summaryNotes.push('Full Concrete Hollow Block (CHB) exterior and interior masonry partitions');
+  }
+
   // Bathrooms modifier
   const totalBaths = (params.bathroomsFloor1 || 0) + (params.storeys >= 2 ? (params.bathroomsFloor2 || 0) : 0);
   const standardBaths = params.storeys;
@@ -90,24 +106,67 @@ export function calculateParametricEstimate(
     );
   }
 
-  // Wall Type note
-  if (params.wallType === 'part_chb_part_drywall') {
-    summaryNotes.push('Drywall partition system applied: shifts budget from masonry to light-gauge carpentry');
-  } else {
-    summaryNotes.push('Full Concrete Hollow Block (CHB) exterior and interior masonry walls');
+  // Doors & Windows sensitivity:
+  // Baseline ratio in residential construction:
+  // ~1 door per 18 m² (min 4 doors)
+  // ~1 window per 14 m² (min 4 windows)
+  const totalDoors = params.doorsFloor1 !== undefined || params.doorsFloor2 !== undefined
+    ? (params.doorsFloor1 || 0) + (params.storeys >= 2 ? (params.doorsFloor2 || 0) : 0)
+    : (params.doorsCount || 10);
+
+  const totalWindows = params.windowsFloor1 !== undefined || params.windowsFloor2 !== undefined
+    ? (params.windowsFloor1 || 0) + (params.storeys >= 2 ? (params.windowsFloor2 || 0) : 0)
+    : (params.windowsCount || 12);
+
+  const baselineDoors = Math.max(3, Math.round(totalFloorArea / 18));
+  const baselineWindows = Math.max(4, Math.round(totalFloorArea / 14));
+
+  const doorRate = params.tier === 'low' ? 4500 : params.tier === 'mid' ? 8500 : 18000;
+  const windowRate = params.tier === 'low' ? 4000 : params.tier === 'mid' ? 8000 : 16000;
+
+  const doorDelta = totalDoors - baselineDoors;
+  const doorAdjustment = doorDelta * doorRate;
+
+  const windowDelta = totalWindows - baselineWindows;
+  const windowAdjustment = windowDelta * windowRate;
+
+  if (doorDelta !== 0) {
+    summaryNotes.push(
+      `${totalDoors} door(s) (${doorDelta > 0 ? '+' : ''}${doorDelta} vs baseline of ${baselineDoors}): ${doorAdjustment >= 0 ? '+' : ''}₱${doorAdjustment.toLocaleString()}`
+    );
+  }
+
+  if (windowDelta !== 0) {
+    summaryNotes.push(
+      `${totalWindows} window(s) (${windowDelta > 0 ? '+' : ''}${windowDelta} vs baseline of ${baselineWindows}): ${windowAdjustment >= 0 ? '+' : ''}₱${windowAdjustment.toLocaleString()}`
+    );
   }
 
   // 4. Compute Direct Cost
-  const adjustedBaseRate = round2(baseRatePerSqM * modifierMultiplier);
+  const adjustedBaseRate = round2(baseRatePerSqM * modifierMultiplier * wallTypeMultiplier);
   const baseDirectCost = round2(totalFloorArea * adjustedBaseRate);
-  const totalDirectCost = round2(baseDirectCost + totalBathAdjustment);
+  const totalDirectCost = round2(
+    Math.max(1000, baseDirectCost + totalBathAdjustment + doorAdjustment + windowAdjustment)
+  );
   const effectiveRatePerSqM = round2(totalDirectCost / totalFloorArea);
 
   // 5. Compute Trade Breakdown
   const tradePcts = getTradePercentages(params.wallType);
-  const tradeBreakdowns: TradeEstimateBreakdown[] = TECHNICAL_TRADES.map((trade) => {
+
+  // Allocate trade amounts ensuring exact sum matching totalDirectCost
+  let accumulatedCost = 0;
+  const tradeBreakdowns: TradeEstimateBreakdown[] = TECHNICAL_TRADES.map((trade, idx) => {
+    const isLast = idx === TECHNICAL_TRADES.length - 1;
     const pct = tradePcts[trade.id] || 10.0;
-    const directCost = round2(totalDirectCost * (pct / 100));
+    let directCost: number;
+
+    if (isLast) {
+      directCost = round2(totalDirectCost - accumulatedCost);
+    } else {
+      directCost = round2(totalDirectCost * (pct / 100));
+      accumulatedCost += directCost;
+    }
+
     return {
       tradeId: trade.id,
       tradeCode: trade.code,
@@ -207,7 +266,7 @@ export function applyParametricToProject(
       totalFloorArea: result.totalFloorArea,
       floorAreaUnit: 'm²',
       currency: '₱',
-      notes: `Parametric Estimate: ${params.storeys}-Storey (${params.tier.toUpperCase()} Finish) @ ₱${result.effectiveRatePerSqM.toLocaleString()}/m². Wall Type: ${params.wallType === 'all_chb' ? 'All CHB' : 'Part Drywall'}.`,
+      notes: `Parametric Estimate: ${params.storeys}-Storey (${params.tier.toUpperCase()} Finish) @ ₱${result.effectiveRatePerSqM.toLocaleString()}/m². Wall Type: ${params.wallType === 'all_chb' ? 'All CHB' : 'Part Drywall'}. Doors: ${params.doorsCount}, Windows: ${params.windowsCount}.`,
     },
     trades: updatedTrades,
     activeTab: 'summary', // Direct to summary to see the results

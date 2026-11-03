@@ -18,7 +18,11 @@ export interface AutoEstimateParams {
   bedroomsFloor2: number;      // Bed count Floor 2
   bathroomsFloor1: number;     // Bath count Floor 1
   bathroomsFloor2: number;     // Bath count Floor 2
+  doorsFloor1?: number;        // Doors count Floor 1
+  doorsFloor2?: number;        // Doors count Floor 2
   doorsCount: number;          // Total doors
+  windowsFloor1?: number;      // Windows count Floor 1
+  windowsFloor2?: number;      // Windows count Floor 2
   windowsCount: number;        // Total windows
   wallType: WallConstructionType; // 'all_chb' | 'part_chb_part_drywall'
 }

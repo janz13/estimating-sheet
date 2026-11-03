@@ -52,6 +52,36 @@ export const AutoEstimatorView: React.FC<AutoEstimatorViewProps> = ({ state, dis
     setAppliedSuccess(false);
   };
 
+  const handleDoorChange = (floor: 1 | 2, val: number) => {
+    const v = Math.max(0, val);
+    setParams((prev) => {
+      const f1 = floor === 1 ? v : (prev.doorsFloor1 || 0);
+      const f2 = floor === 2 ? v : (prev.storeys >= 2 ? (prev.doorsFloor2 || 0) : 0);
+      return {
+        ...prev,
+        doorsFloor1: f1,
+        doorsFloor2: f2,
+        doorsCount: f1 + f2,
+      };
+    });
+    setAppliedSuccess(false);
+  };
+
+  const handleWindowChange = (floor: 1 | 2, val: number) => {
+    const v = Math.max(0, val);
+    setParams((prev) => {
+      const f1 = floor === 1 ? v : (prev.windowsFloor1 || 0);
+      const f2 = floor === 2 ? v : (prev.storeys >= 2 ? (prev.windowsFloor2 || 0) : 0);
+      return {
+        ...prev,
+        windowsFloor1: f1,
+        windowsFloor2: f2,
+        windowsCount: f1 + f2,
+      };
+    });
+    setAppliedSuccess(false);
+  };
+
   const handleApplyToBOQ = () => {
     const updatedState = applyParametricToProject(state, params);
     dispatch({ type: 'LOAD_PROJECT', payload: updatedState });
@@ -329,36 +359,73 @@ export const AutoEstimatorView: React.FC<AutoEstimatorViewProps> = ({ state, dis
               </div>
 
               <div>
-                <label className="text-slate-600 block mb-1">Total Doors</label>
+                <label className="text-slate-600 block mb-1">
+                  Doors (F1)
+                </label>
                 <input
                   type="number"
-                  min="1"
-                  value={params.doorsCount}
-                  onChange={(e) => updateParam('doorsCount', Math.max(1, parseInt(e.target.value) || 1))}
+                  min="0"
+                  value={params.doorsFloor1 ?? 5}
+                  onChange={(e) => handleDoorChange(1, parseInt(e.target.value) || 0)}
                   className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="text-slate-600 block mb-1">Total Windows</label>
+                <label className="text-slate-600 block mb-1">
+                  Doors (F2)
+                </label>
                 <input
                   type="number"
-                  min="1"
-                  value={params.windowsCount}
-                  onChange={(e) => updateParam('windowsCount', Math.max(1, parseInt(e.target.value) || 1))}
+                  min="0"
+                  disabled={params.storeys < 2}
+                  value={params.doorsFloor2 ?? (params.storeys >= 2 ? 5 : 0)}
+                  onChange={(e) => handleDoorChange(2, parseInt(e.target.value) || 0)}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-600 block mb-1">
+                  Windows (F1)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={params.windowsFloor1 ?? 6}
+                  onChange={(e) => handleWindowChange(1, parseInt(e.target.value) || 0)}
                   className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
-              <div className="col-span-2">
-                <label className="text-slate-600 block mb-1">Wall Construction Type</label>
+              <div>
+                <label className="text-slate-600 block mb-1">
+                  Windows (F2)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  disabled={params.storeys < 2}
+                  value={params.windowsFloor2 ?? (params.storeys >= 2 ? 6 : 0)}
+                  onChange={(e) => handleWindowChange(2, parseInt(e.target.value) || 0)}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400"
+                />
+              </div>
+
+              <div className="col-span-2 sm:col-span-4">
+                <label className="text-slate-600 font-semibold block mb-1 flex items-center justify-between">
+                  <span>Wall Construction System</span>
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    CHB vs Drywall cost sensitivity
+                  </span>
+                </label>
                 <select
                   value={params.wallType}
                   onChange={(e) => updateParam('wallType', e.target.value as WallConstructionType)}
-                  className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500 bg-white"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500 bg-white font-medium"
                 >
-                  <option value="all_chb">All CHB (150mm exterior, 100mm interior)</option>
-                  <option value="part_chb_part_drywall">Part CHB / Part Plywood or Drywall Partitions</option>
+                  <option value="all_chb">All CHB (150mm exterior, 100mm interior full plastered masonry)</option>
+                  <option value="part_chb_part_drywall">Part CHB exterior / Part Drywall interior (-4% structure cost savings)</option>
                 </select>
               </div>
             </div>

@@ -28,6 +28,10 @@ describe('Automated Parametric Estimating Engine (Philippine Standards)', () => 
       tier: 'mid' as const,
       bathroomsFloor1: 1,
       bathroomsFloor2: 0,
+      doorsFloor1: 6,
+      doorsCount: 6,
+      windowsFloor1: 7,
+      windowsCount: 7,
     };
     const res = calculateParametricEstimate(params);
     expect(res.baseRatePerSqM).toBe(PHILIPPINE_CONSTRUCTION_TIERS.mid.defaultRatePHP);
@@ -93,9 +97,62 @@ describe('Automated Parametric Estimating Engine (Philippine Standards)', () => 
       groundFloorArea: 100,
       customRatePerSqM: 26500,
       bathroomsFloor1: 1,
+      doorsFloor1: 6,
+      doorsCount: 6,
+      windowsFloor1: 7,
+      windowsCount: 7,
     });
     expect(res.baseRatePerSqM).toBe(26500);
     expect(res.totalDirectCost).toBe(2650000);
+  });
+
+  it('dynamically increases cost when doors count increases', () => {
+    const base = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      doorsFloor1: 4,
+      doorsFloor2: 4,
+      doorsCount: 8,
+    });
+    const extraDoors = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      doorsFloor1: 8,
+      doorsFloor2: 6,
+      doorsCount: 14,
+    });
+    // Increasing doors by 6 should add 6 * ₱8,500 = ₱51,000 for mid tier
+    expect(extraDoors.totalDirectCost).toBeGreaterThan(base.totalDirectCost);
+    expect(extraDoors.totalDirectCost - base.totalDirectCost).toBe(6 * 8500);
+  });
+
+  it('dynamically increases cost when windows count increases', () => {
+    const base = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      windowsFloor1: 5,
+      windowsFloor2: 5,
+      windowsCount: 10,
+    });
+    const extraWindows = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      windowsFloor1: 9,
+      windowsFloor2: 9,
+      windowsCount: 18,
+    });
+    // Increasing windows by 8 should add 8 * ₱8,000 = ₱64,000 for mid tier
+    expect(extraWindows.totalDirectCost).toBeGreaterThan(base.totalDirectCost);
+    expect(extraWindows.totalDirectCost - base.totalDirectCost).toBe(8 * 8000);
+  });
+
+  it('dynamically reduces cost when wall type is switched to part drywall', () => {
+    const allChb = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      wallType: 'all_chb',
+    });
+    const partDrywall = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      wallType: 'part_chb_part_drywall',
+    });
+    // Part drywall should provide ~4% structure cost savings
+    expect(partDrywall.totalDirectCost).toBeLessThan(allChb.totalDirectCost);
   });
 
   it('applies parametric estimate to project state and scales items without NaN', () => {
