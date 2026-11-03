@@ -26,6 +26,7 @@ describe('Automated Parametric Estimating Engine (Philippine Standards)', () => 
       storeyHeight: 3.0,
       groundFloorArea: 100,
       tier: 'mid' as const,
+      bedroomsFloor1: 3,
       bathroomsFloor1: 1,
       bathroomsFloor2: 0,
       doorsFloor1: 6,
@@ -96,6 +97,7 @@ describe('Automated Parametric Estimating Engine (Philippine Standards)', () => 
       storeyHeight: 3.0,
       groundFloorArea: 100,
       customRatePerSqM: 26500,
+      bedroomsFloor1: 3,
       bathroomsFloor1: 1,
       doorsFloor1: 6,
       doorsCount: 6,
@@ -104,6 +106,63 @@ describe('Automated Parametric Estimating Engine (Philippine Standards)', () => 
     });
     expect(res.baseRatePerSqM).toBe(26500);
     expect(res.totalDirectCost).toBe(2650000);
+  });
+
+  it('dynamically increases and decreases cost when bedrooms count changes', () => {
+    // 1-storey 60m² house has baseline of 2 bedrooms
+    const base2Beds = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      storeys: 1,
+      groundFloorArea: 60,
+      tier: 'mid',
+      bedroomsFloor1: 2,
+    });
+
+    // Increasing from 2 to 3 bedrooms (+1 bedroom in mid tier adds ₱48,000)
+    const extraBed = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      storeys: 1,
+      groundFloorArea: 60,
+      tier: 'mid',
+      bedroomsFloor1: 3,
+    });
+    expect(extraBed.totalDirectCost).toBe(base2Beds.totalDirectCost + 48000);
+
+    // Decreasing from 2 to 1 bedroom (-1 bedroom in mid tier reduces ₱48,000)
+    const fewerBed = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      storeys: 1,
+      groundFloorArea: 60,
+      tier: 'mid',
+      bedroomsFloor1: 1,
+    });
+    expect(fewerBed.totalDirectCost).toBe(base2Beds.totalDirectCost - 48000);
+  });
+
+  it('adjusts cost when 2nd floor bedrooms change on multi-storey building', () => {
+    // 2-storey 180m² house
+    const baseTownhouse = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      storeys: 2,
+      groundFloorArea: 100,
+      secondFloorArea: 80,
+      tier: 'mid',
+      bedroomsFloor1: 1,
+      bedroomsFloor2: 3,
+    });
+
+    const addedUpperBed = calculateParametricEstimate({
+      ...DEFAULT_AUTO_PARAMS,
+      storeys: 2,
+      groundFloorArea: 100,
+      secondFloorArea: 80,
+      tier: 'mid',
+      bedroomsFloor1: 1,
+      bedroomsFloor2: 4, // +1 bedroom on Floor 2
+    });
+
+    expect(addedUpperBed.totalDirectCost).toBe(baseTownhouse.totalDirectCost + 48000);
+    expect(addedUpperBed.summaryNotes.some((n) => n.includes('5 bedroom(s) (+1 vs baseline of 4)'))).toBe(true);
   });
 
   it('dynamically increases cost when doors count increases', () => {

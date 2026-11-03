@@ -38,6 +38,19 @@ export const DEFAULT_AUTO_PARAMS: AutoEstimateParams = {
 };
 
 /**
+ * Calculates standard architectural baseline bedroom count for a given floor area.
+ * Typical Philippine residential standard: ~1 bedroom per 35-45 m² of GFA.
+ */
+export function calculateBaselineBedrooms(floorArea: number): number {
+  if (floorArea < 50) return 1;
+  if (floorArea <= 85) return 2;
+  if (floorArea <= 135) return 3;
+  if (floorArea <= 190) return 4;
+  if (floorArea <= 250) return 5;
+  return Math.max(5, Math.round(floorArea / 45));
+}
+
+/**
  * Calculates a parametric estimate from high-level architectural parameters.
  */
 export function calculateParametricEstimate(
@@ -106,6 +119,26 @@ export function calculateParametricEstimate(
     );
   }
 
+  // Bedrooms sensitivity:
+  // Each additional bedroom requires interior partition walls (CHB or stud framing), plaster/paint,
+  // lighting rough-ins, convenience outlets, and dedicated AC unit power rough-in.
+  const totalBedrooms = (params.bedroomsFloor1 || 0) + (params.storeys >= 2 ? (params.bedroomsFloor2 || 0) : 0);
+  const baselineBedrooms = calculateBaselineBedrooms(totalFloorArea);
+
+  const baseBedroomRate = params.tier === 'low' ? 28000 : params.tier === 'mid' ? 48000 : 85000;
+  const bedroomRate = params.wallType === 'part_chb_part_drywall'
+    ? Math.round(baseBedroomRate * 0.92)
+    : baseBedroomRate;
+
+  const bedroomDelta = totalBedrooms - baselineBedrooms;
+  const bedroomAdjustment = bedroomDelta * bedroomRate;
+
+  if (bedroomDelta !== 0) {
+    summaryNotes.push(
+      `${totalBedrooms} bedroom(s) (${bedroomDelta > 0 ? '+' : ''}${bedroomDelta} vs baseline of ${baselineBedrooms}): ${bedroomAdjustment >= 0 ? '+' : ''}₱${bedroomAdjustment.toLocaleString()} for partition walls, electrical & paint`
+    );
+  }
+
   // Doors & Windows sensitivity:
   // Baseline ratio in residential construction:
   // ~1 door per 18 m² (min 4 doors)
@@ -146,7 +179,10 @@ export function calculateParametricEstimate(
   const adjustedBaseRate = round2(baseRatePerSqM * modifierMultiplier * wallTypeMultiplier);
   const baseDirectCost = round2(totalFloorArea * adjustedBaseRate);
   const totalDirectCost = round2(
-    Math.max(1000, baseDirectCost + totalBathAdjustment + doorAdjustment + windowAdjustment)
+    Math.max(
+      1000,
+      baseDirectCost + totalBathAdjustment + bedroomAdjustment + doorAdjustment + windowAdjustment
+    )
   );
   const effectiveRatePerSqM = round2(totalDirectCost / totalFloorArea);
 
@@ -214,6 +250,15 @@ export function applyParametricToProject(
   const result = calculateParametricEstimate(params, state.markups);
   const now = new Date().toISOString();
 
+  const totalBedrooms = (params.bedroomsFloor1 || 0) + (params.storeys >= 2 ? (params.bedroomsFloor2 || 0) : 0);
+  const totalBaths = (params.bathroomsFloor1 || 0) + (params.storeys >= 2 ? (params.bathroomsFloor2 || 0) : 0);
+  const totalDoors = params.doorsFloor1 !== undefined || params.doorsFloor2 !== undefined
+    ? (params.doorsFloor1 || 0) + (params.storeys >= 2 ? (params.doorsFloor2 || 0) : 0)
+    : (params.doorsCount || 10);
+  const totalWindows = params.windowsFloor1 !== undefined || params.windowsFloor2 !== undefined
+    ? (params.windowsFloor1 || 0) + (params.storeys >= 2 ? (params.windowsFloor2 || 0) : 0)
+    : (params.windowsCount || 12);
+
   // Scale each trade's existing items so their sum matches the target trade cost
   const updatedTrades: Trade[] = state.trades.map((trade) => {
     const targetBreakdown = result.tradeBreakdowns.find((b) => b.tradeId === trade.id);
@@ -266,7 +311,7 @@ export function applyParametricToProject(
       totalFloorArea: result.totalFloorArea,
       floorAreaUnit: 'm²',
       currency: '₱',
-      notes: `Parametric Estimate: ${params.storeys}-Storey (${params.tier.toUpperCase()} Finish) @ ₱${result.effectiveRatePerSqM.toLocaleString()}/m². Wall Type: ${params.wallType === 'all_chb' ? 'All CHB' : 'Part Drywall'}. Doors: ${params.doorsCount}, Windows: ${params.windowsCount}.`,
+      notes: `Parametric Estimate: ${params.storeys}-Storey (${params.tier.toUpperCase()} Finish) @ ₱${result.effectiveRatePerSqM.toLocaleString()}/m². Wall Type: ${params.wallType === 'all_chb' ? 'All CHB' : 'Part Drywall'}. Bedrooms: ${totalBedrooms}, Bathrooms: ${totalBaths}, Doors: ${totalDoors}, Windows: ${totalWindows}.`,
     },
     trades: updatedTrades,
     activeTab: 'summary', // Direct to summary to see the results

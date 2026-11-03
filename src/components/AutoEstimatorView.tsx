@@ -318,19 +318,21 @@ export const AutoEstimatorView: React.FC<AutoEstimatorViewProps> = ({ state, dis
                   type="number"
                   min="0"
                   value={params.bedroomsFloor1}
-                  onChange={(e) => updateParam('bedroomsFloor1', parseInt(e.target.value) || 0)}
+                  onChange={(e) => updateParam('bedroomsFloor1', Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="text-slate-600 block mb-1">Bedrooms (F2)</label>
+                <label className="text-slate-600 block mb-1">
+                  {params.storeys >= 3 ? 'Bedrooms (F2/F3)' : 'Bedrooms (F2)'}
+                </label>
                 <input
                   type="number"
                   min="0"
                   disabled={params.storeys < 2}
                   value={params.bedroomsFloor2}
-                  onChange={(e) => updateParam('bedroomsFloor2', parseInt(e.target.value) || 0)}
+                  onChange={(e) => updateParam('bedroomsFloor2', Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400"
                 />
               </div>
@@ -347,7 +349,9 @@ export const AutoEstimatorView: React.FC<AutoEstimatorViewProps> = ({ state, dis
               </div>
 
               <div>
-                <label className="text-slate-600 block mb-1">Bathrooms (F2)</label>
+                <label className="text-slate-600 block mb-1">
+                  {params.storeys >= 3 ? 'Bathrooms (F2/F3)' : 'Bathrooms (F2)'}
+                </label>
                 <input
                   type="number"
                   min="0"
