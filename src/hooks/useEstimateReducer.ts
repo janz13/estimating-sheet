@@ -244,7 +244,11 @@ function loadState(): ProjectEstimateState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as ProjectEstimateState;
-      if (parsed && parsed.version && Array.isArray(parsed.trades)) {
+      if (
+        parsed &&
+        parsed.version === DEFAULT_PROJECT_ESTIMATE.version &&
+        Array.isArray(parsed.trades)
+      ) {
         return parsed;
       }
     }

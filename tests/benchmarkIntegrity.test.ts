@@ -50,7 +50,7 @@ describe('Milestone 1 Benchmark Dataset Integrity Verification', () => {
 
       // Currency
       expect(typeof meta.currency).toBe('string');
-      expect(meta.currency).toBe('$');
+      expect(meta.currency).toBe('₱');
 
       // Status
       expect(['Draft', 'Under Review', 'Approved', 'Final Proposal']).toContain(meta.status);
@@ -334,11 +334,11 @@ describe('Milestone 1 Benchmark Dataset Integrity Verification', () => {
       expect(summary.laborTotal).toBe(expectedLaborTotal);
       expect(summary.equipmentTotal).toBe(expectedEquipmentTotal);
 
-      // Exact numerical verification against worker reported values
-      expect(summary.directCost).toBe(145974.7);
-      expect(summary.materialTotal).toBe(84913.4);
-      expect(summary.laborTotal).toBe(49436.2);
-      expect(summary.equipmentTotal).toBe(11625.1);
+      // Exact numerical verification against 2026 Philippine Peso benchmark dataset
+      expect(summary.directCost).toBe(6844375);
+      expect(summary.materialTotal).toBe(4212150);
+      expect(summary.laborTotal).toBe(2165400);
+      expect(summary.equipmentTotal).toBe(466825);
 
       // Verify category component sum reconciliation
       expect(round2(summary.materialTotal + summary.laborTotal + summary.equipmentTotal)).toBe(
@@ -349,35 +349,35 @@ describe('Milestone 1 Benchmark Dataset Integrity Verification', () => {
       // OCM: 8% of Direct Cost
       const expectedOCM = round2(summary.directCost * 0.08);
       expect(summary.ocmAmount).toBe(expectedOCM);
-      expect(summary.ocmAmount).toBe(11677.98);
+      expect(summary.ocmAmount).toBe(547550);
 
       const expectedSubtotalAfterOCM = round2(summary.directCost + expectedOCM);
       expect(summary.subtotalAfterOCM).toBe(expectedSubtotalAfterOCM);
-      expect(summary.subtotalAfterOCM).toBe(157652.68);
+      expect(summary.subtotalAfterOCM).toBe(7391925);
 
       // Profit: 10% of subtotalAfterOCM
       const expectedProfit = round2(summary.subtotalAfterOCM * 0.1);
       expect(summary.profitAmount).toBe(expectedProfit);
-      expect(summary.profitAmount).toBe(15765.27);
+      expect(summary.profitAmount).toBe(739192.5);
 
       const expectedSubtotalBeforeTax = round2(summary.subtotalAfterOCM + expectedProfit);
       expect(summary.subtotalBeforeTax).toBe(expectedSubtotalBeforeTax);
-      expect(summary.subtotalBeforeTax).toBe(173417.95);
+      expect(summary.subtotalBeforeTax).toBe(8131117.5);
 
       // Tax: 12% of subtotalBeforeTax
       const expectedTax = round2(summary.subtotalBeforeTax * 0.12);
       expect(summary.taxAmount).toBe(expectedTax);
-      expect(summary.taxAmount).toBe(20810.15);
+      expect(summary.taxAmount).toBe(975734.1);
 
       // Grand Total
       const expectedGrandTotal = round2(summary.subtotalBeforeTax + expectedTax);
       expect(summary.grandTotal).toBe(expectedGrandTotal);
-      expect(summary.grandTotal).toBe(194228.1);
+      expect(summary.grandTotal).toBe(9106851.6);
 
       // Cost per floor area (250 m²)
       const expectedCostPerArea = round2(summary.grandTotal / 250.0);
       expect(summary.costPerFloorArea).toBe(expectedCostPerArea);
-      expect(summary.costPerFloorArea).toBe(776.91);
+      expect(summary.costPerFloorArea).toBe(36427.41);
     });
   });
 
@@ -429,8 +429,8 @@ describe('Milestone 1 Benchmark Dataset Integrity Verification', () => {
         parsed.markups,
         parsed.metadata.totalFloorArea
       );
-      expect(reserializedSummary.directCost).toBe(145974.7);
-      expect(reserializedSummary.grandTotal).toBe(194228.1);
+      expect(reserializedSummary.directCost).toBe(6844375);
+      expect(reserializedSummary.grandTotal).toBe(9106851.6);
     });
   });
 

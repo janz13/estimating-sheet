@@ -18,6 +18,9 @@ export type StandardUnit =
   | 'pcs'    // discrete items (junction boxes, floor drains, sprinkler heads, locksets)
   | 'rolls'  // rolled materials (wire rolls, vapor barriers, mesh)
   | 'liters' // liquid coatings, sealers, chemical treatments
+  | 'gals'   // 4-liter / gallon paint & chemical containers
+  | 'bags'   // 40kg Portland cement, 25kg tile adhesive, skim coat bags
+  | 'sheets' // 4'x8' plywood, phenolic, gypsum, HardieFlex & GI sheets
   | 'points' // electrical/data/fire alarm drops
   | 'lot';   // lump sum allowances (temporary facilities, septic tank, testing)
 

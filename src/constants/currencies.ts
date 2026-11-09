@@ -17,7 +17,7 @@ export const SUPPORTED_CURRENCIES: Currency[] = [
   { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', locale: 'en-SG', precision: 2 },
 ];
 
-export const DEFAULT_CURRENCY: Currency = SUPPORTED_CURRENCIES[0];
+export const DEFAULT_CURRENCY: Currency = SUPPORTED_CURRENCIES[1];
 
 export const DEFAULT_PROJECT_MARKUPS: ProjectMarkups = {
   ocmPercent: 8.0,      // Overhead, Contingency & Misc %
