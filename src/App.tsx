@@ -5,19 +5,26 @@ import TradeTabs from './components/TradeTabs';
 import TradeSheet from './components/TradeSheet';
 import ConsolidatedView from './components/ConsolidatedView';
 import AutoEstimatorView from './components/AutoEstimatorView';
-import { calculateConsolidatedSummary, round2 } from './utils/calculations';
+import { calculateConsolidatedSummary, calculateItemCosts } from './utils/calculations';
 import { formatCurrency, formatPercent } from './utils/formatters';
 
 export const App: React.FC = () => {
   const { state, dispatch, exportJSON, importJSON } = useEstimateReducer();
   const { trades, activeTab, metadata, markups } = state;
-  const currency = metadata.currency || '$';
+  const currency = metadata.currency || '₱';
 
-  const currentTrade = trades.find((t) => t.id === activeTab);
+  const currentTradeIndex = trades.findIndex((t) => t.id === activeTab);
+  const currentTrade = currentTradeIndex >= 0 ? trades[currentTradeIndex] : undefined;
+  const prevTrade = currentTradeIndex > 0 ? trades[currentTradeIndex - 1] : undefined;
+  const nextTrade =
+    currentTradeIndex >= 0 && currentTradeIndex < trades.length - 1
+      ? trades[currentTradeIndex + 1]
+      : undefined;
+
   const summary = calculateConsolidatedSummary(trades, markups, metadata.totalFloorArea);
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col text-slate-800 font-sans antialiased">
+    <div className="min-h-screen bg-slate-100/90 flex flex-col text-slate-800 font-sans antialiased">
       {/* Top Application Header */}
       <Header
         state={state}
@@ -27,8 +34,8 @@ export const App: React.FC = () => {
       />
 
       {/* Main Workspace (Web View) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col gap-4 no-print">
-        {/* Navigation Tabs (Summary + 10 Technical Trades) */}
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-0 no-print">
+        {/* Navigation Tabs (Summary + 10 Technical Trades + Automated Mode) */}
         <TradeTabs
           trades={trades}
           activeTab={activeTab}
@@ -46,6 +53,8 @@ export const App: React.FC = () => {
             <TradeSheet
               key={currentTrade.id}
               trade={currentTrade}
+              prevTrade={prevTrade}
+              nextTrade={nextTrade}
               currency={currency}
               dispatch={dispatch}
             />
@@ -62,7 +71,7 @@ export const App: React.FC = () => {
                 Bill of Quantities (BOQ) Estimate
               </h1>
               <p className="text-xs text-slate-500 mt-1">
-                Physical Assembly & Architectural Finishes Specification
+                Physical Assembly &amp; Architectural Finishes Specification
               </p>
             </div>
             <div className="text-right text-xs text-slate-600">
@@ -71,11 +80,17 @@ export const App: React.FC = () => {
               <div>Date: {metadata.date}</div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-xs mt-4 pt-3 border-t border-slate-200">
+          <div className="grid grid-cols-4 gap-4 text-xs mt-4 pt-3 border-t border-slate-200">
             <div><span className="font-semibold text-slate-600">Client:</span> {metadata.clientName}</div>
             <div><span className="font-semibold text-slate-600">Location:</span> {metadata.location}</div>
+            <div><span className="font-semibold text-slate-600">Estimator:</span> {metadata.estimator}</div>
             <div><span className="font-semibold text-slate-600">Floor Area:</span> {metadata.totalFloorArea} {metadata.floorAreaUnit}</div>
           </div>
+          {metadata.notes && (
+            <div className="text-[11px] text-slate-600 mt-2 pt-2 border-t border-slate-100">
+              <span className="font-semibold">Scope Notes:</span> {metadata.notes}
+            </div>
+          )}
         </div>
 
         {/* Master Summary Table for Print */}
@@ -124,7 +139,7 @@ export const App: React.FC = () => {
           <div className="mt-4 flex justify-end">
             <div className="w-80 border border-slate-300 rounded p-3 text-xs space-y-1.5 bg-slate-50">
               <div className="flex justify-between">
-                <span>Overhead / OCM ({markups.ocmPercent}%):</span>
+                <span>Overhead / OCM ({summary.ocmPercent}%):</span>
                 <span className="font-medium">{formatCurrency(summary.ocmAmount, currency)}</span>
               </div>
               <div className="flex justify-between text-slate-500">
@@ -132,7 +147,7 @@ export const App: React.FC = () => {
                 <span>{formatCurrency(summary.subtotalAfterOCM, currency)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Contractor's Profit ({markups.profitPercent}%):</span>
+                <span>Contractor's Profit ({summary.profitPercent}%):</span>
                 <span className="font-medium">{formatCurrency(summary.profitAmount, currency)}</span>
               </div>
               <div className="flex justify-between text-slate-500">
@@ -140,7 +155,7 @@ export const App: React.FC = () => {
                 <span>{formatCurrency(summary.subtotalBeforeTax, currency)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tax / VAT ({markups.taxPercent}%):</span>
+                <span>Tax / VAT ({summary.taxPercent}%):</span>
                 <span className="font-medium">{formatCurrency(summary.taxAmount, currency)}</span>
               </div>
               <div className="flex justify-between font-bold text-sm border-t border-slate-300 pt-1.5 text-slate-900">
@@ -185,8 +200,12 @@ export const App: React.FC = () => {
                   </thead>
                   <tbody>
                     {scope.items.map((item) => {
-                      const uc = round2((item.materialRate || 0) + (item.laborRate || 0) + (item.equipmentRate || 0));
-                      const dt = round2((item.quantity || 0) * uc);
+                      const costs = calculateItemCosts(
+                        item.quantity,
+                        item.materialRate,
+                        item.laborRate,
+                        item.equipmentRate
+                      );
                       return (
                         <tr key={item.id} className="border-b border-slate-100">
                           <td className="p-1 font-mono">{item.itemCode}</td>
@@ -198,8 +217,8 @@ export const App: React.FC = () => {
                           </td>
                           <td className="p-1">{item.unit}</td>
                           <td className="p-1 text-right tabular-nums">{item.quantity}</td>
-                          <td className="p-1 text-right tabular-nums">{formatCurrency(uc, currency)}</td>
-                          <td className="p-1 text-right tabular-nums font-semibold">{formatCurrency(dt, currency)}</td>
+                          <td className="p-1 text-right tabular-nums">{formatCurrency(costs.directUnitCost, currency)}</td>
+                          <td className="p-1 text-right tabular-nums font-semibold">{formatCurrency(costs.directTotalCost, currency)}</td>
                         </tr>
                       );
                     })}
@@ -212,12 +231,16 @@ export const App: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-3 px-6 text-center text-xs text-slate-400 no-print flex flex-wrap justify-between items-center max-w-7xl mx-auto w-full">
-        <div>
-          Building Completion Estimating App &bull; Physical Assembly & Finishes
-        </div>
-        <div className="text-slate-400">
-          Last Updated: {new Date(state.updatedAt).toLocaleTimeString()}
+      <footer className="border-t border-slate-200 bg-white/90 py-3 px-6 text-xs text-slate-500 no-print">
+        <div className="max-w-[1440px] mx-auto flex flex-wrap justify-between items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700">Building Completion Estimating App</span>
+            <span className="text-slate-300">&bull;</span>
+            <span>2026 Philippine Hardware &amp; BOQ Standards</span>
+          </div>
+          <div className="text-slate-400">
+            Auto-saved locally &bull; Last Updated: {new Date(state.updatedAt).toLocaleTimeString()}
+          </div>
         </div>
       </footer>
     </div>
